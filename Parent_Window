@@ -1,0 +1,64 @@
+#define _CRT_SECURE_NO_WARNINGS
+#include <iostream>
+#include <string>
+#include <Windows.h>
+#include <time.h>
+#include <stack>
+#include <conio.h>
+using namespace std;
+
+
+HANDLE AddProcess()
+{
+	STARTUPINFO start{ 0 };
+	PROCESS_INFORMATION info{ 0 };
+	SECURITY_ATTRIBUTES s = { sizeof(SECURITY_ATTRIBUTES), NULL, TRUE };// как работает?
+	string str1, str2;
+	str1= "D:\\Visual Studio\\Projects\\SPOVM_Lab_2_child\\Release\\SPOVM_Lab_2_child.exe ";
+	cout << "Insert string: ";
+	getline(cin, str2, '\n');
+	str1 =str1+"\""+ str2+ "\"";
+	if (!CreateProcess(NULL, const_cast<char*>(str1.c_str()), &s, NULL, TRUE, 0, NULL, NULL, &start, &info))
+	{
+		cout << "Process isn't created" << endl;
+		system("pause");
+		exit(0);
+	}
+	return info.hProcess;
+}
+
+void RemoveProcess(stack<HANDLE>& lst)
+{
+	TerminateProcess(lst.top(), 1);
+	lst.pop();
+}
+
+int main()
+{
+	bool fl = true;
+	stack<HANDLE> lst;
+	SECURITY_ATTRIBUTES s = { sizeof(SECURITY_ATTRIBUTES), NULL, TRUE };
+	HANDLE ev;
+	ev = CreateEvent(&s, TRUE, TRUE, TEXT("event"));
+	while(fl)
+	{
+		switch (getchar())
+		{
+		case '+':
+			getchar();
+			ResetEvent(ev);
+			lst.push(AddProcess());
+			SetEvent(ev);
+			break;
+		case '-':
+			RemoveProcess(lst);
+			break;
+		case 'q':
+			while(!lst.empty())
+				RemoveProcess(lst);
+			fl = false;
+			break;
+		}
+	}
+	return 0;
+}
