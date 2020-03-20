@@ -1,0 +1,26 @@
+#define _CRT_SECURE_NO_WARNINGS
+#include <iostream>
+#include <string>
+#include <Windows.h>
+#include <stack>
+using namespace std;
+
+void print(string str, HANDLE &ev)
+{
+	while (true)
+	{
+		WaitForSingleObject(ev, INFINITE);
+		ResetEvent(ev);
+		cout << str << endl;
+		SetEvent(ev);
+		Sleep(1000);
+	}
+}
+
+int main(int argc, char *argv[])
+{
+	cin.clear();
+	HANDLE ev = OpenEvent(EVENT_ALL_ACCESS, TRUE, TEXT("event"));
+	print(argv[1], ev);
+	return 0;
+}
