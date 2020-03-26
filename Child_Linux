@@ -1,0 +1,23 @@
+#include <iostream>
+#include <unistd.h>
+#include <signal.h>
+
+using namespace std;
+
+string str;
+
+void print (int sig_num)
+{
+    cout << str << endl;
+    sleep(1);
+    kill(getppid(), SIGUSR2);
+}
+
+int main(int argc, char *argv[])
+{
+    str=argv[1];
+    signal(SIGUSR1, print);
+    while(true) 
+        pause();
+    return 0;
+}
