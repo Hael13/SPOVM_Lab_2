@@ -1,0 +1,84 @@
+#include <iostream>
+#include <vector>
+#include <string.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#include <signal.h>
+
+using namespace std;
+
+int i = 1;
+vector<pid_t> lst;
+
+void print(int signum)
+{
+    if(i >= lst.size())
+        i=0;
+    kill(lst[i++], SIGUSR1);
+}
+
+void add_process()
+{   
+    if(lst.size())
+        kill(lst[0], SIGSTOP);
+    pid_t id;
+    string i;
+    cout<<"Insert string: ";
+    cin>>i;
+    id = fork();
+    switch(id)
+    {
+        case -1:
+            cout << "Error" << endl;
+        break;
+        case 0:
+            execl("child.out", "./child.out", i.c_str(), NULL);
+        break;
+        default:
+            lst.push_back(id);
+        break;
+    }
+    sleep(1);
+    if(lst.size())
+    {
+        kill(lst[0], SIGCONT);
+        kill(lst[0], SIGUSR1);
+    }
+}
+
+void remove_process()
+{   
+    if(!lst.size())
+        return;
+    pid_t id=lst[lst.size()-1];
+    lst.pop_back();
+    sleep(1);
+    kill(id, SIGTERM);    
+}
+
+int main()
+{
+    signal(SIGUSR2, print);
+
+    bool fl = true;
+
+    while(fl)
+    {
+        switch(getc(stdin))
+        {   
+            case '+':
+                add_process();
+            break;
+            case '-':
+                remove_process();
+            break;
+            case 'q':
+                fl=false;
+                while(lst.size())
+                    remove_process();
+            break;
+        }
+    }
+
+    return 0;
+}
