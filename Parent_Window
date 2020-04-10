@@ -3,21 +3,20 @@
 #include <string>
 #include <Windows.h>
 #include <time.h>
-#include <stack>
+#include <vector>
 #include <conio.h>
 using namespace std;
 
-
-HANDLE AddProcess()
+HANDLE AddProcess(string event_name)
 {
 	STARTUPINFO start{ 0 };
 	PROCESS_INFORMATION info{ 0 };
-	SECURITY_ATTRIBUTES s = { sizeof(SECURITY_ATTRIBUTES), NULL, TRUE };// как работает?
+	SECURITY_ATTRIBUTES s = { sizeof(SECURITY_ATTRIBUTES), NULL, TRUE };
 	string str1, str2;
-	str1= "D:\\Visual Studio\\Projects\\SPOVM_Lab_2_child\\Release\\SPOVM_Lab_2_child.exe ";
+	str1 = "SPOVM_Lab_2_child.exe ";
 	cout << "Insert string: ";
 	getline(cin, str2, '\n');
-	str1 =str1+"\""+ str2+ "\"";
+	str1 = str1 + "\"" + str2 + "\" " + event_name;
 	if (!CreateProcess(NULL, const_cast<char*>(str1.c_str()), &s, NULL, TRUE, 0, NULL, NULL, &start, &info))
 	{
 		cout << "Process isn't created" << endl;
@@ -27,38 +26,63 @@ HANDLE AddProcess()
 	return info.hProcess;
 }
 
-void RemoveProcess(stack<HANDLE>& lst)
+void RemoveProcess(vector<HANDLE>& lst, vector<HANDLE>& events)
 {
-	TerminateProcess(lst.top(), 1);
-	lst.pop();
+	TerminateProcess(lst[lst.size() - 1], 1);
+	lst.pop_back();
+	events.pop_back();
 }
 
 int main()
 {
 	bool fl = true;
-	stack<HANDLE> lst;
+	vector<HANDLE> processes;
+	vector<HANDLE> events;
+	string name;
 	SECURITY_ATTRIBUTES s = { sizeof(SECURITY_ATTRIBUTES), NULL, TRUE };
-	HANDLE ev;
-	ev = CreateEvent(&s, TRUE, TRUE, TEXT("event"));
-	while(fl)
+	HANDLE common = CreateEvent(&s, TRUE, TRUE, "common");
+	char ch;
+	int event_name = 0, i = 0;
+	while (fl)
 	{
-		switch (getchar())
+		if (_kbhit())
+		{
+			ch = _getch();
+			cout << ch << endl;
+		}
+		else
+			ch = -1;
+		switch (ch)
 		{
 		case '+':
-			getchar();
-			ResetEvent(ev);
-			lst.push(AddProcess());
-			SetEvent(ev);
+			name=std::to_string(event_name++);
+			Sleep(1000);
+			events.push_back(CreateEvent(&s, TRUE, TRUE, const_cast<char*>(name.c_str())));
+			processes.push_back(AddProcess(name));
 			break;
 		case '-':
-			RemoveProcess(lst);
+			RemoveProcess(processes, events);
+			SetEvent(common);
 			break;
 		case 'q':
-			while(!lst.empty())
-				RemoveProcess(lst);
+			while (!processes.empty())
+				RemoveProcess(processes, events);
 			fl = false;
+			SetEvent(common);
+			break;
+		default:
+			WaitForSingleObject(common, INFINITE);
+			ResetEvent(common);
+			if(i<events.size())
+				SetEvent(events[i++]);
+			else
+			{
+				i = 0;
+				SetEvent(common);
+			}
 			break;
 		}
 	}
 	return 0;
 }
+
